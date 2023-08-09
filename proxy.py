@@ -2,36 +2,29 @@ from socket import *
 import sys
 
 if len(sys.argv) <= 1:
-    print
-    'Usage : "python ProxyServer.py server_ip"\n[server_ip : It is the IP Address Of Proxy Server'
+    print('Usage : "python ProxyServer.py server_ip"\n[server_ip : It is the IP Address Of Proxy Server')
     sys.exit(2)
 
 # Create a server socket, bind it to a port and start listening
 tcpSerSock = socket(AF_INET, SOCK_STREAM)
 
-tcpSerSock.bind((sys.argv[1], 6788))
+tcpSerSock.bind(("", 6788))
 tcpSerSock.listen(100)
 
 while 1:
     # Strat receiving data from the client
-    print
-    'Ready to serve...'
+    print('Ready to serve...')
     tcpCliSock, addr = tcpSerSock.accept()
-    print
-    'Received a connection from:', addr
+    print('Received a connection from:', addr)
     message = tcpCliSock.recv(1024)
-    print
-    message
+    print(message)
     # Extract the filename from the given message
-    print
-    message.split()[1]
+    print(message.split()[1])
     filename = message.split()[1].partition("/")[2]
-    print
-    filename
+    print(filename)
     fileExist = "false"
     filetouse = "/" + filename
-    print
-    filetouse
+    print(filetouse)
     try:
         # Check wether the file exist in the cache
         f = open(filetouse[1:], "r")
@@ -66,8 +59,7 @@ while 1:
                     tmpFile.write(line);
                     tcpCliSock.send(line);
             except:
-                print
-                "Illegal request"
+                print("Illegal request")
         else:
             # HTTP response message for file not found
             tcpCliSock.send("HTTP/1.0 404 sendErrorErrorError\r\n")
