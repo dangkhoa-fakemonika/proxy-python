@@ -32,8 +32,52 @@ def getInformation(whole_data):
     except:
         return "EXIT", "EXIT"
 
-def useMethod():
-    print()
+def useMethod(whole_data):
+    try:
+        get_msg = whole_data[0]
+        domain_msg = whole_data[1]
+        domain = domain_msg.split()[1]
+        method = get_msg.split()[0]
+        send_msg = get_msg.split()[0] + " / " + get_msg.split()[2] + "\r\nHost:" + domain_msg.split()[1] + "\r\n\r\n"
+        #send_msg = ""
+        print(get_msg,domain_msg,domain,method,send_msg)
+        #get_msg = ["GET","http...","HTTP/1.1"]
+    except:
+        print("No data received")
+        return
+    valid_methods = ("GET","POST","HEAD")
+    if method not in valid_methods:
+        return
+
+    page = socket(AF_INET,SOCK_STREAM)
+    data = b""
+    buffer_size = 4096
+    process_time = 50
+    page.settimeout(process_time)
+    page.connect((domain, 80))
+    page.sendall(send_msg.encode("ISO-8859-1"))
+    try:
+        while 1:
+            chunk = page.recv(buffer_size)
+            if len(chunk) == 0:
+                print("No content left")
+                break
+            data += chunk
+        #data = page.recv(buffer_size)
+    except:
+        print("Waited too long")
+
+    #print(method)
+    page.close()
+    true_data = data.decode("ISO-8859-1")
+    print("Data received: ")
+    whole = true_data.split("\r\n")
+    # debugPrinting(whole)
+    for i in whole:
+        print(i)
+
+
+
 def getData(conn, address):
     #Receiving data
 
@@ -57,52 +101,20 @@ def getData(conn, address):
     #debugPrinting(whole)
     for i in whole:
         print (i)
-
-    """method_str, host_name = getInformation(whole)
-    req_sequence = method_str + " / HTTP/1.1\r\nHost:www." + host_name + "\r\n\r\n"
-    #print(req_sequence)
-    if (method_str == "EXIT"):
-        return
-    request = req_sequence.encode("ISO-8859-1")
-    # Sent request
-    sent_bytes = 0  # Counting bytes
-
-    data = b""
-    while sent_bytes < len(request):
-        sent_bytes += conn.send(request[sent_bytes:])
-    try:
-        while 1:
-            chunk = conn.recv(buffer_size)
-            if len(chunk) == 0:
-                print("No content left")
-                break
-            data += chunk
-    except:
-        print("Waited too long")
-    #data = s.recv(buffer_size)
-    true_data = data.decode("ISO-8859-1")
-
-    whole = true_data.split("\r\n")
-    #debugPrinting(whole)
-    for i in whole:
-        print (i)"""
     conn.close()
+    useMethod(whole)
 
 
 #Set up the server
 s = socket(AF_INET,SOCK_STREAM)
 #s.connect((hostName,80))
 s.bind(("127.0.0.1",8888))
-s.listen(5)
-
+s.listen(10)
 
 while True:
     print("Waiting...")
     conn, address = s.accept()
     print("Connected to ", address)
     getData(conn,address)
-    num = int(input("0 to continue "))
-    if num:
-        break
 print("End")
 s.close()
