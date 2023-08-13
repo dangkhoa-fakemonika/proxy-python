@@ -34,21 +34,13 @@ def getInformation(whole_data):
 
 def useMethod():
     print()
-def getData():
-    #Set up the server
-    s = socket(AF_INET,SOCK_STREAM)
-    #s.connect((hostName,80))
-    s.bind(("127.0.0.1",8888))
-    s.listen(5)
-    print("Waiting...")
-    conn, address = s.accept()
-    print("Connected to ", address)
+def getData(conn, address):
     #Receiving data
 
     data = b""
     buffer_size = 4096
     process_time = 5
-    conn.settimeout(process_time)
+    """conn.settimeout(process_time)
     try:
         while 1:
             chunk = conn.recv(buffer_size)
@@ -57,8 +49,8 @@ def getData():
                 break
             data += chunk
     except:
-        print("Waited too long")
-    #data = s.recv(buffer_size)
+        print("Waited too long")"""
+    data = conn.recv(buffer_size)
     true_data = data.decode("ISO-8859-1")
 
     whole = true_data.split("\r\n")
@@ -95,6 +87,22 @@ def getData():
     for i in whole:
         print (i)"""
     conn.close()
-    s.close()
 
-getData()
+
+#Set up the server
+s = socket(AF_INET,SOCK_STREAM)
+#s.connect((hostName,80))
+s.bind(("127.0.0.1",8888))
+s.listen(5)
+
+
+while True:
+    print("Waiting...")
+    conn, address = s.accept()
+    print("Connected to ", address)
+    getData(conn,address)
+    num = int(input("0 to continue "))
+    if num:
+        break
+print("End")
+s.close()
