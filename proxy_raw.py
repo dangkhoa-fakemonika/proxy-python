@@ -52,7 +52,7 @@ def useMethod(whole_data):
     page = socket(AF_INET,SOCK_STREAM)
     data = b""
     buffer_size = 4096
-    process_time = 50
+    process_time = 5
     page.settimeout(process_time)
     page.connect((domain, 80))
     page.sendall(send_msg.encode("ISO-8859-1"))
@@ -69,14 +69,13 @@ def useMethod(whole_data):
 
     #print(method)
     page.close()
-    true_data = data.decode("ISO-8859-1")
+    true_data = data.decode()
     print("Data received: ")
     whole = true_data.split("\r\n")
     # debugPrinting(whole)
     for i in whole:
         print(i)
-
-
+    #return whole
 
 def getData(conn, address):
     #Receiving data
@@ -110,7 +109,8 @@ s = socket(AF_INET,SOCK_STREAM)
 #s.connect((hostName,80))
 s.bind(("127.0.0.1",8888))
 s.listen(10)
-
+data_1 = []
+data_2 = []
 while True:
     print("Waiting...")
     conn, address = s.accept()
