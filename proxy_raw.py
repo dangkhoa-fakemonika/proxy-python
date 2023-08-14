@@ -62,6 +62,13 @@ def methodProcessing(message):
     if method not in ("GET","POST","HEAD"):
             return #403
     #whitelist
+
+    if WLenabled:
+        if domain not in whitelist:
+            print("Not available")
+            return #403
+
+
     request = getRequest(method, domain)
     page = socket(AF_INET,SOCK_STREAM)
     data = b""
