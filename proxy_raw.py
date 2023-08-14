@@ -7,6 +7,7 @@ import time as pytime
 from datetime import datetime, time
 import os
 import re
+import json
 
 def debugPrinting(whole_data):
     try:
@@ -19,18 +20,18 @@ def debugPrinting(whole_data):
 
     db_file.write("\nend of debugging one\n\n\n")
     db_file.close()
+def readJSONConfigFile(filename):
+    config_file = open(filename,"r")
+    read_data = json.load(config_file)
 
-def getInformation(whole_data):
-    try:
-        method = whole_data[0].split(" ")
-        host = whole_data[1].split(" ")
+    content = ("cache_time","whitelist_enabled","whitelist","time_restriction","time_allow","decode_format")
+    cache_time = int(read_data["cache_time"])
+    WLenabled = bool(read_data["whitelist_enabled"])
+    whitelist = read_data["whitelist"]
+    restriction = read_data["time_restriction"]
+    time_allow = read_data["time_allow"]
 
-    #return ''.join(format(ord(i), '08b') for i in method[0]), ''.join(format(ord(i), '08b') for i in host[1])
-    #print(method)
-    #print(host)
-        return method[0],host[1]
-    except:
-        return "EXIT", "EXIT"
+    return cache_time,WLenabled,whitelist,restriction,time_allow
 
 def methodProcessing(message):
     valid_methods = ("GET","POST","HEAD")
@@ -39,7 +40,7 @@ def methodProcessing(message):
         print(method)
         url = message.split()[1]
         print(url)
-        domain = url.split()[4]
+        domain = message.split()[4]
         print(domain)
         #method = request.split()[0]
         if method not in valid_methods:
@@ -106,12 +107,13 @@ def connect(client, address):
 
 
 #Set up the server
+cache_time,WLenabled,whitelist,restriction,time_allow = readJSONConfigFile()
 proxy = socket(AF_INET,SOCK_STREAM)
+proxy.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
 #s.connect((hostName,80))
 proxy.bind(("127.0.0.1",8888))
 proxy.listen(10)
-data_1 = []
-data_2 = []
+
 while True:
     print("Waiting...")
     clientSock, address = proxy.accept()
