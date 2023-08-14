@@ -50,6 +50,10 @@ def return403(client_connect):
     error_text = error_file.read()
     client_connect.send(b'HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + error_text.encode("ISO-8859-1"))
 
+    print("#################################")
+    print("Process Terminated")
+    print("#################################")
+
 def methodProcessing(message):
     try:
         method = message.split()[0]
@@ -121,6 +125,10 @@ def connectionProcessing(client, address):
     methodProcessing(message)
     client.close()
 
+    print("########################################")
+    print("Connection to",addr_name,"ended! ")
+    print("########################################")
+
 
 #Set up the server
 
@@ -129,13 +137,20 @@ proxy.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
 #s.connect((hostName,80))
 proxy.bind(("127.0.0.1",8888))
 proxy.listen(10)
+print("Currently listening...")
 
 while True:
-    print("Waiting...")
     clientSock, address = proxy.accept()
-    print("Connected to ", address)
-    main_thread = threading.Thread(name=address[0],target=connectionProcessing,args=(clientSock,address))
+    addr_name = str(address[0]) + ' : ' + str(address[1]) # 127.0.0.1 : XXXXX
+
+    print("#################################")
+    print("Connected to", addr_name)
+    print("#################################")
+
+    #Initiate threading
+    main_thread = threading.Thread(name=addr_name,target=connectionProcessing,args=(clientSock,addr_name))
     main_thread.start()
+
     #main_thread.join()
     #connectionProcessing(clientSock,address)
 print("End")
