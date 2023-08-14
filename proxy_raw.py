@@ -47,12 +47,7 @@ def methodProcessing(message):
     try:
         method = message.split()[0]
         url = message.split()[1]
-        print(url)
         domain = message.split()[4]
-        print(domain)
-        #method = request.split()[0]
-        if method not in valid_methods:
-            return #403
         domain = message.split()[4]
         url = url[url.find('://')+3:]
         file_path = url[url.find('/'):] 
