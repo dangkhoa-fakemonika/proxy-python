@@ -48,7 +48,6 @@ def methodProcessing(message):
         method = message.split()[0]
         url = message.split()[1]
         domain = message.split()[4]
-        domain = message.split()[4]
         url = url[url.find('://')+3:]
         file_path = url[url.find('/'):] 
         #send_msg = request.split()[0] + " / " + request.split()[2] + "\r\nHost:" + domain_msg.split()[1] + "\r\n\r\n"
