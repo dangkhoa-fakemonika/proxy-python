@@ -39,22 +39,22 @@ def readJSONConfigFile(filename):
 cache_time,WLenabled,whitelist,restriction,time_allow = readJSONConfigFile("config.json")
 def getRequest(method, domain):
     if method == "GET":
-        return method + " / HTTP/1.1\r\nHost:" + domain + "\r\n\r\n"
+        return method + " / HTTP/1.0\r\nHost:" + domain + "\r\n\r\n"
     if method == "POST":
-        return method + " /auth HTTP/1.1\r\n"
+        return method + " /auth HTTP/1.0\r\n"
     if method == "HEAD":
-        return method + " / HTTP/1.1\r\nHost:" + domain + "\r\nAccept: text/html\r\n"
+        return method + " / HTTP/1.0\r\nHost:" + domain + "\r\nAccept: text/html\r\n"
 
 def return403(client_connect):
     error_file = open("error403.html",'r')
     error_text = error_file.read()
-    client_connect.send(b'HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + error_text.encode("ISO-8859-1"))
+    client_connect.send(b'HTTP/1.0 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + error_text.encode("ISO-8859-1"))
 
     print("#################################")
     print("Process Terminated")
     print("#################################")
 
-def methodProcessing(message):
+def methodProcessing(message,client):
     try:
         method = message.split()[0]
         url = message.split()[1]
@@ -98,6 +98,7 @@ def methodProcessing(message):
     #print(method)
     page.close()
     response = data.decode("ISO-8859-1")
+    client.send(data)
     print("Data received: ")
     #print(method)
     #print(response)
@@ -122,7 +123,7 @@ def connectionProcessing(client, address):
     #debugPrinting(whole)
     #for i in whole:
     #    print (i)
-    methodProcessing(message)
+    methodProcessing(message,client)
     client.close()
 
     print("########################################")
