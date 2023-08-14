@@ -61,7 +61,6 @@ def methodProcessing(message):
                 print("No content left")
                 break
             data += chunk
-        #data = page.recv(buffer_size)
     except:
         print("Waited too long")
 
