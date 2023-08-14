@@ -32,21 +32,22 @@ def getInformation(whole_data):
     except:
         return "EXIT", "EXIT"
 
-def useMethod(whole_data):
+def methodProcessing(message):
+    valid_methods = ("GET","POST","HEAD")
     try:
-        get_msg = whole_data[0]
-        domain_msg = whole_data[1]
-        domain = domain_msg.split()[1]
-        method = get_msg.split()[0]
-        send_msg = get_msg.split()[0] + " / " + get_msg.split()[2] + "\r\nHost:" + domain_msg.split()[1] + "\r\n\r\n"
-        #send_msg = ""
-        print(get_msg,domain_msg,domain,method,send_msg)
-        #get_msg = ["GET","http...","HTTP/1.1"]
+        method = message.split()[0]
+        print(method)
+        url = message.split()[1]
+        print(url)
+        domain = url.split()[4]
+        print(domain)
+        #method = request.split()[0]
+        if method not in valid_methods:
+            return #403
+        #send_msg = request.split()[0] + " / " + request.split()[2] + "\r\nHost:" + domain_msg.split()[1] + "\r\n\r\n"
+        #print(request,domain_msg,domain,method,send_msg)
     except:
         print("No data received")
-        return
-    valid_methods = ("GET","POST","HEAD")
-    if method not in valid_methods:
         return
 
     page = socket(AF_INET,SOCK_STREAM)
@@ -55,7 +56,7 @@ def useMethod(whole_data):
     process_time = 5
     page.settimeout(process_time)
     page.connect((domain, 80))
-    page.sendall(send_msg.encode("ISO-8859-1"))
+    page.sendall(message.encode("ISO-8859-1"))
     try:
         while 1:
             chunk = page.recv(buffer_size)
@@ -77,9 +78,8 @@ def useMethod(whole_data):
         print(i)
     #return whole
 
-def getData(conn, address):
+def connect(client, address):
     #Receiving data
-
     data = b""
     buffer_size = 4096
     process_time = 5
@@ -93,28 +93,29 @@ def getData(conn, address):
             data += chunk
     except:
         print("Waited too long")"""
-    data = conn.recv(buffer_size)
-    true_data = data.decode("ISO-8859-1")
+    msg = client.recv(buffer_size)
+    msg = msg[:-2]+b"Connection: Close\r\n\r\n"
+    message = msg.decode("ISO-8859-1")
 
-    whole = true_data.split("\r\n")
+    #whole = message.split("\r\n")
     #debugPrinting(whole)
-    for i in whole:
-        print (i)
-    conn.close()
-    useMethod(whole)
+    #for i in whole:
+    #    print (i)
+    methodProcessing(message)
+    client.close()
 
 
 #Set up the server
-s = socket(AF_INET,SOCK_STREAM)
+proxy = socket(AF_INET,SOCK_STREAM)
 #s.connect((hostName,80))
-s.bind(("127.0.0.1",8888))
-s.listen(10)
+proxy.bind(("127.0.0.1",8888))
+proxy.listen(10)
 data_1 = []
 data_2 = []
 while True:
     print("Waiting...")
-    conn, address = s.accept()
+    clientSock, address = proxy.accept()
     print("Connected to ", address)
-    getData(conn,address)
+    connect(clientSock,address)
 print("End")
 s.close()
