@@ -54,69 +54,62 @@ def return403(client_connect):
     print("Process Terminated")
     print("#################################")
 
+def writeReceiveData(method,domain):
+    ###################################### IF CODE GONE WRONG GO HERE ####################
+    request = getRequest(method, domain)
+    page = socket(AF_INET, SOCK_STREAM)
+    data = b""
+    page.settimeout(process_time)
+    page.connect((domain, 80))
+
+    page.sendall(request.encode("ISO-8859-1"))
+    try:
+        while 1:
+            chunk = page.recv(buffer_size)
+            if len(chunk) == 0:
+                print("No content left")
+                break
+            data += chunk
+    except:
+        print("Waited too long")
+
+    # print(response)
+    # print(method)
+    page.close()
+    return data
+    #######################################################################################
 
 def createCacheData(method,domain):
-    try:
-        os.makedirs("cache/"+ domain)
-        ###################################### IF CODE GONE WRONG GO HERE ####################
-        request = getRequest(method, domain)
-        page = socket(AF_INET, SOCK_STREAM)
-        data = b""
-        page.settimeout(process_time)
-        page.connect((domain, 80))
-
-        page.sendall(request.encode("ISO-8859-1"))
-        try:
-            while 1:
-                chunk = page.recv(buffer_size)
-                if len(chunk) == 0:
-                    print("No content left")
-                    break
-                data += chunk
-        except:
-            print("Waited too long")
+    if method != 'GET': #I dont like caching for other methods
+        data = writeReceiveData(method,domain)
         response = data.decode("ISO-8859-1")
-        #print(response)
-        # print(method)
-        page.close()
-        #######################################################################################
-        cache_content = response.partition("\r\n\r\n")[2]
-        cache_file = open("cache/" + domain + "/" + domain + ".html", "w")
-        cache_file.write(cache_content)
-        cache_file.close()
-    except:
+        print(response)
+    else:
         try:
-            cache_file = open("cache/" + domain + "/" + domain + ".html", "r")
-            response = cache_file.read()
-            data = response.encode("ISO-8859-1")
-            cache_file.close()
-        except:
-            ###################################### IF CODE GONE WRONG GO HERE ####################
-            request = getRequest(method, domain)
-            page = socket(AF_INET, SOCK_STREAM)
-            data = b""
-            page.settimeout(process_time)
-            page.connect((domain, 80))
+            os.makedirs("cache/"+ domain)
 
-            page.sendall(request.encode("ISO-8859-1"))
-            try:
-                while 1:
-                    chunk = page.recv(buffer_size)
-                    if len(chunk) == 0:
-                        print("No content left")
-                        break
-                    data += chunk
-            except:
-                print("Waited too long")
+            data = writeReceiveData(method,domain)
+
             response = data.decode("ISO-8859-1")
-            print(response)
-            # print(method)
-            page.close()
-            #######################################################################################
             cache_content = response.partition("\r\n\r\n")[2]
             cache_file = open("cache/" + domain + "/" + domain + ".html", "w")
             cache_file.write(cache_content)
             cache_file.close()
+        except:
+            try:
+                cache_file = open("cache/" + domain + "/" + domain + ".html", "r")
+                response = cache_file.read()
+                data = response.encode("ISO-8859-1")
+                cache_file.close()
+            except:
+
+                data = writeReceiveData(method,domain)
+
+                response = data.decode("ISO-8859-1")
+                cache_content = response.partition("\r\n\r\n")[2]
+                cache_file = open("cache/" + domain + "/" + domain + ".html", "w")
+                cache_file.write(cache_content)
+                cache_file.close()
     return data
 
 def methodProcessing(message,client):
@@ -134,15 +127,17 @@ def methodProcessing(message,client):
         return
     #Check valid method
     if method not in ("GET","POST","HEAD"):
+            return403(client)
             return #403
     #whitelist
 
     if WLenabled:
         if domain not in whitelist:
             print("Not available")
+            return403(client)
             return #403
 
-    ##################### GO TO CREATE CACHE DATA IF GONE WRONG ########################
+    ##################### GO TO WRITE RECEIVE DATA IF GONE WRONG ########################
     data = createCacheData(method,domain)
     ####################################################################################
     response = data.decode("ISO-8859-1")
@@ -157,8 +152,9 @@ def methodProcessing(message,client):
 
 def connectionProcessing(client, address):
     if restriction:
-        if (datetime.now().time() < time(time_allow[0],0,0) or datetime.now().time() > time(time_allow[1],0,0)):
+        if (time(time_allow[0],0,0) < datetime.now().time() < time(time_allow[1],0,0)):
             print("Not available")
+            return403(client)
             return #403
 
     #Receiving data
@@ -169,7 +165,7 @@ def connectionProcessing(client, address):
 
     #whole = message.split("\r\n")
     #debugPrinting(whole)
-    #for i in whole:
+    #for i in message:
     #    print (i)
     methodProcessing(message,client)
     client.close()
