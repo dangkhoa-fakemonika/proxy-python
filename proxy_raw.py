@@ -45,6 +45,11 @@ def getRequest(method, domain):
     if method == "HEAD":
         return method + " / HTTP/1.1\r\nHost:" + domain + "\r\nAccept: text/html\r\n"
 
+def return403(client_connect):
+    error_file = open("error403.html",'r')
+    error_text = error_file.read()
+    client_connect.send(b'HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + error_text.encode("ISO-8859-1"))
+
 def methodProcessing(message):
     try:
         method = message.split()[0]
@@ -98,6 +103,11 @@ def methodProcessing(message):
         print(i)
 
 def connectionProcessing(client, address):
+    if restriction:
+        if (datetime.now().time() < time(time_allow[0],0,0) or datetime.now().time() > time(time_allow[1],0,0)):
+            print("Not available")
+            return #403
+
     #Receiving data
     data = b""
     msg = client.recv(buffer_size)
@@ -126,4 +136,4 @@ while True:
     print("Connected to ", address)
     connectionProcessing(clientSock,address)
 print("End")
-s.close()
+proxy.close()

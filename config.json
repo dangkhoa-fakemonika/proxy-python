@@ -1,6 +1,6 @@
 {
     "cache_time": 900,
-    "whitelisting_enabled": 1,
+    "whitelisting_enabled": 0,
     "whitelist" :["google.com", "example.com", "bing.com","vbsca.ca"],
     "time_restriction": 0,
     "time_allow": "7-18",
