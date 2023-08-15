@@ -37,13 +37,13 @@ def readJSONConfigFile(filename):
     return cache_time,WLenabled,whitelist,restriction,time_allow
 
 cache_time,WLenabled,whitelist,restriction,time_allow = readJSONConfigFile("config.json")
-def getRequest(method, domain):
+def getRequest(method, domain, url):
     if method == "GET":
-        return method + " / HTTP/1.0\r\nHost:" + domain + "\r\n\r\n"
+        return method + " " + url + " HTTP/1.0\r\nHost:" + domain + "\r\n\r\n"
     if method == "POST":
         return method + " /auth HTTP/1.0\r\n"
     if method == "HEAD":
-        return method + " / HTTP/1.0\r\nHost:" + domain + "\r\nAccept: text/html\r\n"
+        return method + " " + url + " HTTP/1.0\r\nHost:" + domain+ "\r\nAccept: text/html\r\n"
 
 def return403(client_connect):
     error_file = open("error403.html",'r')
@@ -54,9 +54,9 @@ def return403(client_connect):
     print("Process Terminated")
     print("#################################")
 
-def writeReceiveData(method,domain):
+def writeReceiveData(method,domain,url):
     ###################################### IF CODE GONE WRONG GO HERE ####################
-    request = getRequest(method, domain)
+    request = getRequest(method, domain, url)
     page = socket(AF_INET, SOCK_STREAM)
     data = b""
     page.settimeout(process_time)
@@ -79,16 +79,16 @@ def writeReceiveData(method,domain):
     return data
     #######################################################################################
 
-def createCacheData(method,domain):
-    if method != 'GET': #I dont like caching for other methods
-        data = writeReceiveData(method,domain)
+def createCacheData(method,domain,url):
+    if method != 'GET' or 1: #I dont like caching for other methods
+        data = writeReceiveData(method,domain,url)
         response = data.decode("ISO-8859-1")
         print(response)
     else:
         try:
             os.makedirs("cache/"+ domain)
 
-            data = writeReceiveData(method,domain)
+            data = writeReceiveData(method,domain,url)
 
             response = data.decode("ISO-8859-1")
             cache_content = response.partition("\r\n\r\n")[2]
@@ -103,7 +103,7 @@ def createCacheData(method,domain):
                 cache_file.close()
             except:
 
-                data = writeReceiveData(method,domain)
+                data = writeReceiveData(method,domain,url)
 
                 response = data.decode("ISO-8859-1")
                 cache_content = response.partition("\r\n\r\n")[2]
@@ -118,8 +118,9 @@ def methodProcessing(message,client):
         url = message.split()[1]
         domain = message.split()[4]
         #print(domain)
-        url = url[url.find('://')+3:]
-        file_path = url[url.find('/'):] 
+        #url = url[url.find('://')+3:]
+        #file_path = url[url.find('/'):]
+        print("URL:",url)
         #send_msg = request.split()[0] + " / " + request.split()[2] + "\r\nHost:" + domain_msg.split()[1] + "\r\n\r\n"
         #print(request,domain_msg,domain,method,send_msg)
     except:
@@ -138,7 +139,7 @@ def methodProcessing(message,client):
             return #403
 
     ##################### GO TO WRITE RECEIVE DATA IF GONE WRONG ########################
-    data = createCacheData(method,domain)
+    data = createCacheData(method,domain,url)
     ####################################################################################
     response = data.decode("ISO-8859-1")
     client.send(data)
@@ -163,10 +164,10 @@ def connectionProcessing(client, address):
     msg = msg[:-2]+b"Connection: Close\r\n\r\n"
     message = msg.decode("ISO-8859-1")
 
-    #whole = message.split("\r\n")
+    whole = message.split("\r\n")
     #debugPrinting(whole)
-    #for i in message:
-    #    print (i)
+    for i in whole:
+        print (i)
     methodProcessing(message,client)
     client.close()
 
