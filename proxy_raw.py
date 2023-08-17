@@ -4,7 +4,7 @@ from socket import *
 import sys
 import threading
 import time as pytime
-from datetime import datetime, time
+from datetime import date, datetime, time
 import os
 import re
 import json
@@ -84,38 +84,67 @@ def writeReceiveData(message,method,domain,url):
     return data
     #######################################################################################
 
+##################################################DATA HANDLING###############################################
+def saveCacheImages(response,domain,path,file_name):
+    cache_img_content = response.partition("\r\n\r\n")[2].encode("ISO-8859-1")
+    cache_img = open("cache/" + domain + "/" + path + "/" + file_name, "wb")
+    cache_img.write(cache_img_content)
+    cache_img.close()
+    cache_header_content = response.partition("\r\n\r\n")[0].encode("ISO-8859-1")
+    cache_img_header = open("cache/" + domain + "/" + path + "/" + file_name.partition(".")[0] + ".bin", "wb")
+    cache_img_header.write(cache_header_content)
+    cache_img_header.write(b"\r\n\r\n" + datetime.now().strftime("%H/%M/%S/%d/%m/%y").encode("ISO-8859-1"))
+    cache_img_header.close()
+
 def createCacheData(message,method,domain,url):
-    if method != 'GET' or 1: #I dont like caching for other methods
+    if 0 or method != 'GET' or message.partition("\r\n\r\n")[0].find("Accept: image") == -1: #I dont like caching for other methods
         data = writeReceiveData(message,method,domain,url)
         response = data.decode("ISO-8859-1")
         print(response)
     else:
+        file_name = url.split("/").pop()
+        extension = file_name.partition(".")[2]
+        path = url.partition("http://" + domain)[2].partition("/" + file_name)[0]
+
+        #if extension not in []:
+        #    data = writeReceiveData(message, method, domain, url)
+        #    response = data.decode("ISO-8859-1")
+        #    print(response)
+        #    return
+
         try:
-            os.makedirs("cache/"+ domain)
+            # No folder for caching (no data cached)
+            os.makedirs("cache/" + domain + "/" + path)
 
             data = writeReceiveData(message,method,domain,url)
 
             response = data.decode("ISO-8859-1")
-            cache_content = response.partition("\r\n\r\n")[2]
-            cache_file = open("cache/" + domain + "/" + domain + ".html", "w")
-            cache_file.write(cache_content)
-            cache_file.close()
+            saveCacheImages(response,domain,path,file_name)
         except:
             try:
-                cache_file = open("cache/" + domain + "/" + domain + ".html", "r")
-                response = cache_file.read()
-                data = response.encode("ISO-8859-1")
-                cache_file.close()
-            except:
+                #Check for cached file existing
+                cache_img = open("cache/" + domain + "/" + path + "/" + file_name, "rb")
+                cache_img.close()
+                cache_img_header = open("cache/" + domain + "/" + path + "/" + file_name.partition(".")[0] + ".bin", "rb")
+                cache_img_header.close()
+                cache_header = cache_img_header.read().decode("ISO-8859-1")
+                header,blank,timecheck = cache_header.partition("\r\n\r\n")
+                dd,mm,yy,hh,mm,ss = timecheck.split("/")
+                getdate = datetime(yy,mm,dd,hh,mm,ss) + datetime.timedelta(seconds=cache_time)
+                if getdate > datetime.now():
+                    raise TypeError() #Cancel cache to write new cache
 
+                response = header + "\r\n\r\n"+ cache_img.read().decode("ISO-8859-1")
+                data = response.encode("ISO-8859-1")
+
+            except:
                 data = writeReceiveData(message,method,domain,url)
 
                 response = data.decode("ISO-8859-1")
-                cache_content = response.partition("\r\n\r\n")[2]
-                cache_file = open("cache/" + domain + "/" + domain + ".html", "w")
-                cache_file.write(cache_content)
-                cache_file.close()
+                saveCacheImages(response,domain,path,file_name)
     return data
+
+
 
 def methodProcessing(message,client):
     try:
@@ -145,7 +174,8 @@ def methodProcessing(message,client):
 
     ##################### GO TO WRITE RECEIVE DATA IF GONE WRONG ########################
     data = createCacheData(message,method,domain,url)
-    ####################################################################################
+    #####################################################################################
+
     response = data.decode("ISO-8859-1")
     client.send(data)
     print("Data received: ")
