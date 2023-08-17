@@ -12,17 +12,7 @@ import json
 buffer_size = 4096
 process_time = 5
 
-def debugPrinting(whole_data):
-    try:
-        db_file = open("ex.txt","x")
-    except:
-        db_file = open("ex.txt","a")
-    for i in whole_data:
-        db_file.write(i)
-        db_file.write("\n")
-
-    db_file.write("\nend of debugging one\n\n\n")
-    db_file.close()
+##################################### CONFIG FILE READING #######################################
 def readJSONConfigFile(filename):
     config_file = open(filename,"r")
     read_data = json.load(config_file)
@@ -33,17 +23,22 @@ def readJSONConfigFile(filename):
     whitelist = read_data["whitelist"]
     restriction = read_data["time_restriction"]
     time_allow = read_data["time_allow"]
+    supported_img = read_data["supported_img_types"]
 
-    return cache_time,WLenabled,whitelist,restriction,time_allow
+    return cache_time,WLenabled,whitelist,restriction,time_allow,supported_img
 
-cache_time,WLenabled,whitelist,restriction,time_allow = readJSONConfigFile("config.json")
+#Read config file
+cache_time,WLenabled,whitelist,restriction,time_allow,supported_img = readJSONConfigFile("config.json")
+
+######################################## REQUEST HANDLING ##########################################
+
 def getRequest(message,method,domain, url):
     if method == "GET":
-        return method + " " + url + " HTTP/1.0\r\nHost:" + domain + "\r\nConnection: close\r\n\r\n"
+        return method + " " + url + " HTTP/1.1\r\nHost:" + domain + "\r\nConnection: close\r\n\r\n"
     if method == "HEAD":
-        return method + " " + url + " HTTP/1.0\r\nHost:" + domain + "\r\nAccept: text/html\r\nConnection: close\r\n\r\n"
+        return method + " " + url + " HTTP/1.1\r\nHost:" + domain + "\r\nAccept: text/html\r\nConnection: close\r\n\r\n"
     if method == "POST":
-        request = method + " " + url + " HTTP/1.0\r\n"
+        request = method + " " + url + " HTTP/1.1\r\n"
         if message.find("Connection") == -1:
             request += message.partition("\r\n\r\n")[0] + "\r\nConnection: close\r\n\r\n" + message.partition("\r\n\r\n")[2]
         else:
@@ -59,8 +54,8 @@ def return403(client_connect):
     print("Process Terminated")
     print("#################################")
 
+######################################### DATA PROCESSING #########################################################
 def writeReceiveData(message,method,domain,url):
-    ###################################### IF CODE GONE WRONG GO HERE ####################
     request = getRequest(message,method, domain, url)
     page = socket(AF_INET, SOCK_STREAM)
     data = b""
@@ -68,22 +63,50 @@ def writeReceiveData(message,method,domain,url):
     page.connect((domain, 80))
 
     page.sendall(request.encode("ISO-8859-1"))
-    try:
+    #Searching for Transfer-Encoding/Content-Length in header
+    while 1:
+        tmpbit = page.recv(1)
+        data += tmpbit
+        if b"\r\n\r\n" in data:
+            break
+    print("Decode process: ")
+    print(data.decode("ISO-8859-1"))
+    print("End of decode")
+    if b"Transfer-Encoding: chunked" in data and 1:
         while 1:
-            chunk = page.recv(buffer_size)
-            if len(chunk) == 0:
-                print("No content left")
-                break
-            data += chunk
-    except:
-        print("Waited too long")
+            try:
+                number = b""
+                while 1:
+                    tmpbit = page.recv(1)
+                    number += tmpbit
+                    if b"\r\n" in number:
+                        break
+                data += number
+                num = int(number.strip(b'\r\n'),16) + 2
+                if num == 2:
+                    break
+                else:
+                    data += page.recv(num)
+            except:
+                print("Waited too long")
+    elif b"Content-Length: " in data and 1:
+        num = int(data.decode("ISO-8859-1").partition("Content-Length: ")[2].partition("\r\n")[0])
+        print("Num: ###### ",num)
+        data += page.recv(num)
+    else:
+        #Main process
+        try:
+            while 1:
+                chunk = page.recv(buffer_size)
+                if len(chunk) == 0:
+                    print("No content left")
+                    break
+                data += chunk
+        except:
+            print("Waited too long")
 
-    # print(response)
-    # print(method)
     page.close()
     return data
-    #######################################################################################
-
 ##################################################DATA HANDLING###############################################
 def saveCacheImages(response,domain,path,file_name):
     cache_img_content = response.partition("\r\n\r\n")[2].encode("ISO-8859-1")
@@ -106,18 +129,16 @@ def createCacheData(message,method,domain,url):
         extension = file_name.partition(".")[2]
         path = url.partition("http://" + domain)[2].partition("/" + file_name)[0]
 
-        #if extension not in []:
-        #    data = writeReceiveData(message, method, domain, url)
-        #    response = data.decode("ISO-8859-1")
-        #    print(response)
-        #    return
+        if extension not in supported_img:
+            data = writeReceiveData(message, method, domain, url)
+            response = data.decode("ISO-8859-1")
+            print(response)
+            return
 
         try:
             # No folder for caching (no data cached)
             os.makedirs("cache/" + domain + "/" + path)
-
             data = writeReceiveData(message,method,domain,url)
-
             response = data.decode("ISO-8859-1")
             saveCacheImages(response,domain,path,file_name)
         except:
@@ -139,33 +160,28 @@ def createCacheData(message,method,domain,url):
 
             except:
                 data = writeReceiveData(message,method,domain,url)
-
                 response = data.decode("ISO-8859-1")
                 saveCacheImages(response,domain,path,file_name)
     return data
 
-
+########################################### METHOD PROCESSSING ########################################################
 
 def methodProcessing(message,client):
     try:
         method = message.split()[0]
         url = message.split()[1]
         domain = message.split()[4]
-        #print(domain)
-        #url = url[url.find('://')+3:]
-        #file_path = url[url.find('/'):]
         print("URL:",url)
-        #send_msg = request.split()[0] + " / " + request.split()[2] + "\r\nHost:" + domain_msg.split()[1] + "\r\n\r\n"
-        #print(request,domain_msg,domain,method,send_msg)
     except:
         print("No data received")
         return
-    #Check valid method
+
+    #Kiểm tra phương thức hợp lệ
     if method not in ("GET","POST","HEAD"):
             return403(client)
             return #403
-    #whitelist
 
+    #Danh sách cho phép
     if WLenabled:
         if domain not in whitelist:
             print("Not available")
@@ -179,10 +195,7 @@ def methodProcessing(message,client):
     response = data.decode("ISO-8859-1")
     client.send(data)
     print("Data received: ")
-    #print(method)
-    #print(response)
     whole = response.split("\r\n")
-    #debugPrinting(whole)
     for i in whole:
         print(i)
 
@@ -200,7 +213,6 @@ def connectionProcessing(client, address):
     message = msg.decode("ISO-8859-1")
 
     whole = message.split("\r\n")
-    #debugPrinting(whole)
     for i in whole:
         print (i)
     methodProcessing(message,client)
@@ -211,11 +223,10 @@ def connectionProcessing(client, address):
     print("########################################")
 
 
-#Set up the server
+############################################## PROXY MAIN #################################################################
 
 proxy = socket(AF_INET,SOCK_STREAM)
 proxy.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
-#s.connect((hostName,80))
 proxy.bind(("127.0.0.1",8888))
 proxy.listen(10)
 print("Currently listening...")
