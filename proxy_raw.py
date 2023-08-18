@@ -75,6 +75,7 @@ def writeReceiveData(message,method,domain,url):
     if b"Transfer-Encoding: chunked" in data and 1:
         while 1:
             try:
+                #Read the number
                 number = b""
                 while 1:
                     tmpbit = page.recv(1)
@@ -82,17 +83,40 @@ def writeReceiveData(message,method,domain,url):
                     if b"\r\n" in number:
                         break
                 data += number
-                num = int(number.strip(b'\r\n'),16) + 2
-                if num == 2:
+                num = int(number.strip(b'\r\n'),16)
+
+                if num == 0:
                     break
                 else:
-                    data += page.recv(num)
+                    try:
+                        while 1:
+                            chunk = page.recv(min(buffer_size, num))
+                            if len(chunk) == 0:
+                                print("No content left")
+                                break
+                            data += chunk
+                            num -= len(chunk)
+                            if num <= 0:
+                                break
+                    except:
+                        print("End of line data")
             except:
                 print("Waited too long")
     elif b"Content-Length: " in data and 1:
         num = int(data.decode("ISO-8859-1").partition("Content-Length: ")[2].partition("\r\n")[0])
-        print("Num: ###### ",num)
-        data += page.recv(num)
+        print("Length:",num)
+        try:
+            while 1:
+                chunk = page.recv(min(buffer_size,num))
+                if len(chunk) == 0:
+                    print("No content left")
+                    break
+                data += chunk
+                num -= len(chunk)
+                if num <= 0:
+                    break
+        except:
+            print("End of line data")
     else:
         #Main process
         try:
@@ -197,6 +221,8 @@ def methodProcessing(message,client):
     print("Data received: ")
     whole = response.split("\r\n")
     for i in whole:
+        if 1 or i.isspace():
+            break
         print(i)
 
 def connectionProcessing(client, address):
@@ -214,7 +240,7 @@ def connectionProcessing(client, address):
 
     whole = message.split("\r\n")
     for i in whole:
-        print (i)
+        print(i)
     methodProcessing(message,client)
     client.close()
 
@@ -247,3 +273,4 @@ while True:
     #connectionProcessing(clientSock,address)
 print("End")
 proxy.close()
+
