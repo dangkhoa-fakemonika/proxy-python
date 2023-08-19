@@ -60,15 +60,18 @@ def getRequest(message,method,domain,url):
             request += message.partition("\r\n")[2].partition("Connection: ")[0] + "Connection: close\r\n" + message.partition("Connection: ")[2].partition("\r\n")[2]
         return request
 
-def return403(client_connect):
+def return403(client):
 
     try:
         error_file = open("error/error403.html",'r')
         error_text = error_file.read()
+        print("error")
     except:
         error_text = ''
 
-    client_connect.send(b'HTTP/1.0 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + error_text.encode(decoder))
+    client.sendall(b'HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + error_text.encode(decoder))
+    #client.sendall(error_text.encode())
+    client.close()
 
     print("#################################")
     print("Process Terminated")
@@ -272,15 +275,15 @@ def methodProcessing(message,client):
     print("Data received: ")
     whole = response.split("\r\n")
     for i in whole:
-        if 1 or i.isspace():
+        if len(i) == 0:
             break
-        print(i)
+        print()
 
 def connectionProcessing(client):
 
     #Test for restricted access time
     if restriction:
-        if (time(time_allow[0],0,0) < datetime.now().time() < time(time_allow[1],0,0)):
+        if not time(time_allow[0],0,0) < datetime.now().time() < time(time_allow[1],0,0):
             print("Not available")
             return403(client)
             return #403
@@ -308,7 +311,7 @@ proxy = socket(AF_INET,SOCK_STREAM)
 proxy.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
 proxy.bind(("127.0.0.1",8888))
 proxy.listen(20)
-print("Currently listening...")
+print("Waiting for connections...")
 
 #Proxy server processes
 while True:

@@ -6,8 +6,8 @@
     "whitelisting_enabled": 0,
     "whitelist" :["google.com", "example.com", "bing.com"],
 
-    "time_restriction": 0,
-    "time_allow": "7-18",
+    "time_restriction": 1,
+    "time_allow": [7,18],
 
     "decoder": "ISO-8859-1",
 
