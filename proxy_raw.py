@@ -22,7 +22,7 @@ def readJSONConfigFile(filename):
     whitelist = read_data["whitelist"]
 
     #Time restriction configurations
-    restriction = read_data["time_restriction"]
+    restriction = bool(read_data["time_restriction"])
     time_allow = read_data["time_allow"]
 
     #Decode
@@ -62,14 +62,11 @@ def getRequest(message,method,domain,url):
 
 def return403(client):
 
-    try:
-        error_file = open("error/error403.html",'r')
+    with open("error/error403.html", "r") as error_file:
         error_text = error_file.read()
-        print("error")
-    except:
-        error_text = ''
+    print("error")
 
-    client.sendall(b'HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + error_text.encode(decoder))
+    client.sendall(b'HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + error_text.encode() + b'\r\n')
     #client.sendall(error_text.encode())
     client.close()
 
@@ -280,16 +277,16 @@ def methodProcessing(message,client):
         print()
 
 def connectionProcessing(client):
-
-    #Test for restricted access time
-    if restriction:
-        if not time(time_allow[0],0,0) < datetime.now().time() < time(time_allow[1],0,0):
-            print("Not available")
-            return403(client)
-            return #403
-
     #Receiving data
     msg = client.recv(buffer_size)
+    
+    # Test for restricted access time
+    if restriction:
+        if not time(time_allow[0], 0, 0) <= datetime.now().time() <= time(time_allow[1], 0, 0):
+            print("Not available")
+            return403(client)
+            return  # 403
+
     message = msg.decode(decoder)
 
     whole = message.split("\r\n")
