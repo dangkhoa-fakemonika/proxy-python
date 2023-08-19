@@ -32,11 +32,19 @@ cache_time,WLenabled,whitelist,restriction,time_allow,supported_img = readJSONCo
 
 ######################################## REQUEST HANDLING ##########################################
 
-def getRequest(message,method,domain, url):
+def getRequest(message,method,domain,url):
+    input_url = url
+    if input_url.partition(domain)[2] == "/":
+        url = input_url.partition(domain)[0] + input_url.partition(domain)[1]
+    if input_url.partition("http://")[2].partition("/")[0] != domain:
+        domain = input_url.partition("http://")[2].partition("/")[0]
+
+    #print("aaaaa: ",url)
     if method == "GET":
         return method + " " + url + " HTTP/1.1\r\nHost:" + domain + "\r\nConnection: close\r\n\r\n"
     if method == "HEAD":
-        return method + " " + url + " HTTP/1.1\r\nHost:" + domain + "\r\nAccept: text/html\r\nConnection: close\r\n\r\n"
+        #return method + " " + url + " HTTP/1.1\r\nHost:" + domain + "\r\nAccept: text/html\r\nConnection: close\r\n\r\n"
+        return method + " " + url + " HTTP/1.1\r\nHost:" + domain + "\r\nConnection: close\r\n\r\n"
     if method == "POST":
         request = method + " " + url + " HTTP/1.1\r\n"
         if message.find("Connection") == -1:
@@ -59,6 +67,11 @@ def writeReceiveData(message,method,domain,url):
     request = getRequest(message,method, domain, url)
     page = socket(AF_INET, SOCK_STREAM)
     data = b""
+    print("Domain 1:", domain)
+    print("URL:", url)
+    if url.partition("http://")[2].partition("/")[0] != domain:
+        domain = url.partition("http://")[2].partition("/")[0]
+    print("Domain 2:", domain)
     page.settimeout(process_time)
     page.connect((domain, 80))
 
@@ -86,8 +99,10 @@ def writeReceiveData(message,method,domain,url):
                 num = int(number.strip(b'\r\n'),16)
 
                 if num == 0:
+                    data += b"\r\n"
                     break
                 else:
+                    num += 2
                     try:
                         while 1:
                             chunk = page.recv(min(buffer_size, num))
@@ -254,7 +269,7 @@ def connectionProcessing(client, address):
 proxy = socket(AF_INET,SOCK_STREAM)
 proxy.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
 proxy.bind(("127.0.0.1",8888))
-proxy.listen(10)
+proxy.listen(20)
 print("Currently listening...")
 
 while True:
