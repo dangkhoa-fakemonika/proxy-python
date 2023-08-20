@@ -4,16 +4,18 @@
     "process_time": 5,
 
     "whitelisting_enabled": 0,
-    "whitelist" :["google.com", "example.com", "bing.com"],
+    "whitelist" :["example.com","frogfind.com"],
 
-    "time_restriction": 1,
-    "time_allow": [7,18],
+    "time_restriction": 0,
+    "time_allow": [0,8],
 
     "decoder": "ISO-8859-1",
 
     "supported_img": [
         "apng", "avif", "gif", 
-        "jpg", "jpeg", "jfif", "pjpeg", "pjp", "png", "svg", "webp", 
+        "jpg", "jpeg", "jfif",
+        "pjp", "png",
+        "svg", "webp",
         "bmp", "ico", "cur", "tif", "tiff"
     ]
 }

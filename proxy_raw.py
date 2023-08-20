@@ -176,7 +176,7 @@ def saveCacheImages(response,domain,path,file_name):
     cache_header_content = response.partition("\r\n\r\n")[0].encode(decoder)
     cache_img_header = open("cache/" + domain + "/" + path + "/" + file_name.partition(".")[0] + ".bin", "wb")
     cache_img_header.write(cache_header_content)
-    cache_img_header.write(b"\r\n\r\n" + datetime.now().strftime("%H/%M/%S/%d/%m/%y").encode(decoder))
+    cache_img_header.write(b"\r\n\r\n" + datetime.now().strftime("%H/%M/%S/%d/%m/%Y").encode(decoder))
     cache_img_header.close()
 
 def createCacheData(message,method,domain,url):
@@ -203,7 +203,7 @@ def createCacheData(message,method,domain,url):
             os.makedirs("cache/" + domain + "/" + path)
             data = receiveResponseData(message,method,domain,url)
             response = data.decode(decoder)
-
+            print("Cache created")
             saveCacheImages(response,domain,path,file_name)
         except:
             #Folder path found
@@ -211,27 +211,36 @@ def createCacheData(message,method,domain,url):
             try:
                 #Check for cached file existing
                 cache_img = open("cache/" + domain + "/" + path + "/" + file_name, "rb")
-                cache_img.close()
                 cache_img_header = open("cache/" + domain + "/" + path + "/" + file_name.partition(".")[0] + ".bin", "rb")
-                cache_img_header.close()
                 cache_header = cache_img_header.read().decode(decoder)
 
                 #Get last cache time stamp
                 header,blank,timecheck = cache_header.partition("\r\n\r\n")
-                dd,mm,yy,hh,mm,ss = timecheck.split("/")
-                getdate = datetime(yy,mm,dd,hh,mm,ss) + timedelta(seconds=cache_time)
+
+                t_hr = int(timecheck.split("/")[0])
+                t_min = int(timecheck.split("/")[1])
+                t_sec = int(timecheck.split("/")[2])
+                t_dd = int(timecheck.split("/")[3])
+                t_mm = int(timecheck.split("/")[4])
+                t_yy = int(timecheck.split("/")[5])
+
+                getdate = datetime(t_yy,t_mm,t_dd,t_hr,t_min,t_sec) + timedelta(seconds=cache_time)
 
                 #Test for validity
-                if getdate > datetime.now():
+                if getdate <= datetime.now():
                     raise TypeError() #Cancel cache to write new cache
-
+                print("Cache loaded")
                 #Write valid cache and send back to client
                 response = header + "\r\n\r\n"+ cache_img.read().decode(decoder)
+
+                cache_img.close()
+                cache_img_header.close()
                 data = response.encode(decoder)
 
             except:
                 #No data cached found or cache file expires
                 #Pushing the request to the web server
+                print("Cache renewed")
                 data = receiveResponseData(message,method,domain,url)
                 response = data.decode(decoder)
                 saveCacheImages(response,domain,path,file_name)
@@ -272,14 +281,12 @@ def methodProcessing(message,client):
     print("Data received: ")
     whole = response.split("\r\n")
     for i in whole:
-        if len(i) == 0:
-            break
         print()
 
 def connectionProcessing(client):
     #Receiving data
     msg = client.recv(buffer_size)
-    
+
     # Test for restricted access time
     if restriction:
         if not time(time_allow[0], 0, 0) <= datetime.now().time() <= time(time_allow[1], 0, 0):
